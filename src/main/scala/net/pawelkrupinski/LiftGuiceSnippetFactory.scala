@@ -11,23 +11,23 @@ class LiftGuiceSnippetFactory(val injector: Injector, val liftRules: LiftRules) 
     liftRules.snippets.append(snippetFunction)
   }
 
-  def snippetFunction: PartialFunction[scala.List[String], (NodeSeq) => NodeSeq] = {
+  private def snippetFunction: PartialFunction[scala.List[String], (NodeSeq) => NodeSeq] = {
     case className :: method :: Nil if (findSnippetMethod(className, method).isDefined) => fetchSnippet(className, method)
     case className :: Nil if (findSnippetMethod(className).isDefined) => fetchSnippet(className, "render")
   }
 
-  def findSnippetMethod(className: String, method: String = "render") =
+  private def findSnippetMethod(className: String, method: String = "render") =
     findClass(className, liftRules.buildPackage("snippet"))
       .flatMap(_.getMethods().find(_.getName == method))
 
-  def fetchSnippet(className: String, method: String): (NodeSeq) => NodeSeq =
+  private def fetchSnippet(className: String, method: String): (NodeSeq) => NodeSeq =
     findSnippetMethod(className, method).map(method =>
       callMethodOrApplyFunction(instantiate(method.getDeclaringClass.asInstanceOf[Class[AnyRef]]), method) _
     ).openTheBox
 
-  def instantiate[T](theClass: Class[T]): T = injector.getInstance(theClass)
+  private def instantiate[T](theClass: Class[T]): T = injector.getInstance(theClass)
 
-  def callMethodOrApplyFunction(instance: AnyRef, method: Method)(nodes: NodeSeq): NodeSeq = {
+  private def callMethodOrApplyFunction(instance: AnyRef, method: Method)(nodes: NodeSeq): NodeSeq = {
     if (classOf[NodeSeq].isAssignableFrom(method.getReturnType)) {
       method.invoke(instance, nodes).asInstanceOf[NodeSeq]
     } else {
